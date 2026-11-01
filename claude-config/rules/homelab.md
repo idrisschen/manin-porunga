@@ -5,19 +5,36 @@ paths:
   - "**/manin-porunga/**"
   - "**/Projects/manin-porunga.md"
 canonical_sources:
-  - "Obsidian/vault/Homelab/_index.md (⚠ exclu du clone Leo — secrets ; l'actionnable vit dans cette rule)"
-  - "Obsidian/vault/Claude/Memory/decisions.md (topologie 2026-06-03, Tailscale 2026-06-01)"
-last_reviewed: 2026-06-06
+  - "Private Homelab index and current project notes"
+  - "Private Porunga deployment inventory"
+last_reviewed: 2026-11-01
 ---
 
-# Rule — Homelab & outils internes Jarvis
+# Rule — VPS runtime and internal infrastructure
 
-Chargée quand je touche `Homelab/`, `manin-porunga/`, `workspace/`. Source canonique = `Obsidian/Homelab/_index.md` + `decisions.md`.
+Loaded for Homelab, workspace, and Manin Porunga work. This public rule is
+sanitized; live host identities, addresses, paths, and credentials stay in private
+configuration.
 
-- **Gate pré-action externe** (SOUL §6.bis) : toute reco "redéploie/push/migration/dns/rollback" → vérifier d'abord `reference_*` + `decisions.md`. Déploiement homelab = **Coolify** (confirmé), apps sur worker **`apps-coolify`** (VM 310), jamais sur l'orchestrateur `localhost` (VM 221).
-- **Git/prod SÉQUENTIEL STRICT** (SOUL §2.bis) : une commande mutante à la fois (`commit`/`push`/`merge`/`deploy`/`db push`), vérification isolée entre chaque. Jamais de batch. Garde-fou : `bin/jarvis-bash-guard.sh`.
-- **Topologie 2 régimes** (decisions 2026-06-03) : petits projets → tout sur apps-coolify ; gros projets → front Vercel + base self-hostée VM dédiée Srv2 via tunnel Cloudflare.
-- **Accès Coolify** : token dans `~/.config/jarvis/secrets/env`, utilisable seulement depuis le Mac en LAN/Tailscale. Cloud agent ne peut pas.
-- **manin-porunga = source canonique versionnée** (decisions 2026-05-27) : `bin/`/`docs/`/`share/` édités directement ; `memory/` mirroré depuis le vault par `memory-sync` (ne jamais éditer `memory/` dans le repo, il est écrasé).
-- **bootstrap ressuscite ce qui reste en source** (leçon #20) : pour retirer un cron/import, supprimer la SOURCE, pas seulement le déployé.
-- Accès homelab : `ssh -i ~/.ssh/<your-homelab-key> root@<homelab-host>` (IP VLAN routée par Tailscale ; jamais l'IP LAN de la box). Pour le sysadmin pur → déléguer à `alfred`.
+- **Porunga runtime**: use the public-facing name **VPS**. It is the only Porunga
+  execution host. No Porunga runtime component, hook, timer, memory database, or
+  persistent runtime state runs on the Mac.
+- **Repository authority**: `manin-porunga` is a curated public mirror, not the
+  production source or deployment target. Production code and deployment
+  configuration live in the private canonical repository.
+- **Verify before an external operation**: before recommending or performing a
+  deployment, migration, DNS change, rollback, or credential change, read the
+  current private project notes and deployment inventory. A remembered target or
+  a checked-in example is not evidence of live state.
+- **Project-specific deployment targets**: use the target recorded for that
+  project. Do not infer that an app belongs on the VPS, a platform, or another
+  machine from this rule.
+- **Credentials and private data**: load them only through the configured private
+  mechanism on the VPS. Never copy them into this repository, logs, prompts, or
+  public documentation.
+- **Access**: use the approved remote-access path already configured for the
+  operator. If the route or host identity cannot be verified, stop and report the
+  access blocker; do not disable host-key or identity checks.
+- **Sequential state changes**: one mutating Git or infrastructure command at a
+  time, followed by an isolated verification. Preserve existing work from other
+  sessions.

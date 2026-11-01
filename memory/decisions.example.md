@@ -15,8 +15,9 @@
 
 - **Gel architectural & Allègement** : aucun nouvel organe (scripts binaires, daemons, cron jobs)
   sans mandat explicite daté. Maintenance, allègement et purges de complexité autorisés.
-- **Topologie de flotte** : machine de dev = interactif, dev, watchdog mécanique ; serveur / homelab
-  = routines de fond autonomes (briefs, surveillance prod).
+- **Topologie Porunga** : le VPS est l'unique hôte d'exécution. Services, minuteries,
+  mémoire persistante et données de runtime restent sur le VPS ; le Mac n'héberge aucun
+  composant Porunga et sert uniquement d'accès distant si nécessaire.
 - **Sécurité prod client** : jamais de DELETE programmatique en prod client (API/SQL). Toute suppression
   critique passe par une interface d'administration avec audit log natif. Sauvegardes obligatoires.
 - **Modèle de coûts & Déterminisme** : déterministe (`bash`, `python`, `jq`, `grep`) en priorité absolue ;
@@ -43,8 +44,9 @@ comme laboratoire éducatif isolé, mais la production privilégie la fiabilité
 
 ## AAAA-MM-JJ — <Exemple : Séparation des rôles et diversité des modèles>
 
-**Décision** : le rôle de bâtisseur (Jarvis) tourne sur Claude Code et Antigravity CLI ; le rôle de
-contradicteur (Leo) tourne sur un modèle open-weights indépendant (Hermes) hébergé séparément.
+**Décision** : le rôle de bâtisseur (Jarvis) et le rôle de contradicteur doivent conserver
+des lignées de modèles distinctes lorsque la contradiction est requise. Les détails de
+fournisseur, de modèle et d'hébergement appartiennent à la configuration privée, pas à ce template.
 
 **Pourquoi** : deux agents basés sur la même famille de modèles partagent les mêmes angles morts
 et biais de complaisance. Séparer les familles garantit une véritable contradiction.

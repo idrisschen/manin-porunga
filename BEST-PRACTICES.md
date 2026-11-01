@@ -8,6 +8,12 @@ sanitized into one actionable list.
 The narrative versions of a few live in the [README](./README.md) ("Guardrails, forged from
 incidents" and "Philosophy"). This file is the full reference.
 
+## 0. Runtime boundary
+
+Porunga runs on one VPS. No Porunga runtime component, hook, timer, database, or persistent
+runtime state runs on the Mac. The public repository is a curated mirror, not the deployment source;
+see [Current Porunga architecture](./docs/architecture.md).
+
 ---
 
 ## 1. Action & autonomy
@@ -80,7 +86,7 @@ incidents" and "Philosophy"). This file is the full reference.
 - **LLM for judgment only** — classification, drafting, summarizing, extracting from unstructured text.
   Not for routing, retries, status codes, or deterministic transforms (`grep`, `jq`, `set -uo pipefail`
   do those faster, cheaper, and with 100% determinism).
-- **Architectural freeze & slimming**: no new organs (scripts, LaunchAgents, daemons) without an
+- **Architectural freeze & slimming**: no new organs (scripts, systemd timers, daemons) without an
   explicit dated mandate. Prefer pruning unused complexity over piling on new features.
 
 ## 9. Production guardrails
@@ -91,10 +97,10 @@ incidents" and "Philosophy"). This file is the full reference.
 ## 10. Context discipline & the "Dumb Zone"
 - Long multi-phase sessions degrade model performance — silly errors, forgotten constraints, repetition.
 - Before any risky prod or migration step in a long session, **compact or hand off to a fresh context first**.
-  The `jarvis-context-watch.sh` hook monitors session weight and alerts before entering the danger zone.
+  `jarvis-context-watch.sh` is a retained guardrail example; it is not an active VPS hook.
 
 ## 11. Platform hygiene
-- macOS ≠ GNU — test every shell command against BSD utilities when running on macOS.
+- The VPS runtime uses Debian/Linux. If a script is intended to run on a workstation as well, account for BSD/GNU utility differences.
 - `set -e -o pipefail` is treacherous with early-exit pipes (`grep -q`, `head`); use `set -uo pipefail`.
 - Any hook or script invoking the model must feature a re-entrancy guard (`JARVIS_*_RUNNING=1`).
 - Headless model processes must be constrained by an explicit write-roots boundary.

@@ -1,17 +1,18 @@
 # HEARTBEAT — flotte de routines
 
-> **Template.** Copiez en `heartbeat.md`. Décrit les **routines automatiques** (cron / launchd)
-> et le **dispatcher manuel**. C'est la carte de ce qui tourne tout seul vs ce que vous lancez.
+> **Template.** Copiez en `heartbeat.md`. Décrit les routines automatiques et le dispatcher
+> manuel. Dans l'architecture Porunga actuelle, les routines tournent sur le VPS via systemd;
+> aucun timer Porunga n'est installé sur le Mac.
 
 ---
 
 ## Principe
 
-Distinguez deux régimes :
+Distinguez deux régimes sur le VPS :
 - **Routines qui invoquent le LLM** (coûtent des tokens) → à garder rares et transparentes.
-- **Daemons locaux** (indexation, dashboard, bot) → ne coûtent rien, peuvent tourner en continu.
+- **Services déterministes** (indexation, supervision, sauvegarde) → coûtent peu, mais ont besoin d'un verdict lisible.
 
-> Leçon courante : un cron LLM qui tourne en arrière-plan gonfle la consommation sans que
+> Leçon courante : une routine LLM qui tourne en arrière-plan gonfle la consommation sans que
 > vous le voyiez. Préférez le **déclenchement manuel** par défaut, et n'automatisez que ce qui
 > apporte un signal actionnable régulier.
 
@@ -19,12 +20,12 @@ Distinguez deux régimes :
 
 | Routine | Cadence | Coût LLM | Sortie |
 |---|---|---|---|
-| `<brief matinal>` | <quotidien> | oui | <note du jour> |
-| `<revue hebdo>` | <dimanche> | oui | <note hebdo> |
-| `<auto-évaluation>` | <tous les N jours> | oui | <note eval> |
-| `<surveillance prod>` | <quotidien> | oui | <alerte si 🔴 seulement> |
-| `<indexation notes>` | <horaire> | non | <index> |
-| `<sauvegarde mémoire>` | <quotidien> | non | <commit git privé> |
+| `<brief matinal>` | <systemd timer VPS> | oui | <note du jour> |
+| `<revue hebdo>` | <systemd timer VPS> | oui | <note hebdo> |
+| `<auto-évaluation>` | <systemd timer VPS> | oui | <note eval> |
+| `<surveillance prod>` | <systemd timer VPS> | oui | <alerte si 🔴 seulement> |
+| `<indexation notes>` | <systemd timer VPS> | non | <index> |
+| `<sauvegarde mémoire>` | <systemd timer VPS> | non | <backup vérifiable> |
 
 ## Dispatcher manuel
 
@@ -38,7 +39,8 @@ Un point d'entrée unique pour lancer les routines à la demande, ex. :
 
 - Tout hook qui rappelle le LLM doit avoir une **garde anti-récursion**.
 - Gating de cadence (ex. "ne pas relancer si < N jours depuis le dernier run").
-- launchd/cron rattrape les runs manqués si la machine dormait — en tenir compte.
+- Les timers systemd du VPS doivent expliciter le rattrapage des runs manqués et leur verdict.
+- Ne pas créer de second ordonnanceur sur un poste d'accès distant.
 
 ---
 

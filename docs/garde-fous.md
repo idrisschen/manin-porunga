@@ -1,146 +1,74 @@
-# Garde-fous Claude Code — couches et périmètre
+# Guardrail scope and limits
 
-> Invariant SOUL : *« garde-fou critique = mécanisme vérifiable, pas rappel cognitif »*.
-> Ce document dit ce que chaque couche garantit **et ce qu'elle ne garantit pas**.
-> Une couche présentée au-delà de son périmètre est un garde-fou décoratif.
+This document describes the guardrail examples included in the public mirror. Porunga's
+production runtime is on the VPS; this repository is not the deployment source. A script
+being present here does not prove it is installed or active on the VPS. The private
+deployment inventory is authoritative for live hooks and settings.
 
-## Les trois couches
+## Current runtime boundary
 
-| # | Couche | Où | Coût | Ce qu'elle arrête | Ce qu'elle n'arrête pas |
-|---|---|---|---|---|---|
-| 1 | `permissions.deny` | `~/.claude/settings.json` | nul (natif) | l'accident : la commande destructive tapée telle quelle | le contournement (`echo … \| base64 -d \| sh`), le renommage, les variables |
-| 2 | Hooks `PreToolUse` | `jarvis-bash-guard.sh`, `jarvis-memory-guard.sh` | ~50 ms | le batch mutant chaîné, le destructif git, l'écriture hors write-root headless | le code volontairement obfusqué ; ce n'est **pas** une sandbox OS |
-| 3 | CI, branch protection, droits infra | hors poste | — | la seule couche **opposable** | rien en local, avant push |
+- The VPS is the only Porunga execution host.
+- No Porunga runtime component, hook, timer, or persistent store runs on the Mac.
+- Public scripts below are examples or retained references unless the private deployment
+  inventory says otherwise.
+- These checks reduce accidental mistakes. They are not an operating-system sandbox or
+  a replacement for access control, review, backups, and CI.
 
-Couche 1 et 2 protègent **la boucle interactive**. Elles ne protègent pas le dépôt.
-L'autorité reste la couche 3. Ne jamais dire « c'est bloqué » en s'appuyant sur 1 ou 2 seules.
+## Guardrails in this repository
 
-## Boucle de vérification — `PostToolUse`
-
-`bin/jarvis-posttool-verify.sh` (matcher `Write|Edit|MultiEdit`).
-
-Après chaque écriture, check syntaxique déterministe **du seul fichier touché**, renvoyé
-à l'agent via `exit 2` + stderr (Claude Code réinjecte stderr dans la boucle).
-
-| Extension | Checker | Remarque |
+| Component | Intended protection | Limit |
 |---|---|---|
-| `.sh` | `bash -n` | |
-| `.zsh` | `zsh -n` | |
-| `.py` | `python3 compile()` | pas `py_compile` : n'écrit pas de `__pycache__` |
-| `.json` | `python3 json.load` | **pas `jq empty`** : selon la version, jq sort 0 sur un JSON tronqué (constaté 2026-09-10) |
-| `.yaml`/`.yml` | `yaml.safe_load` | ignoré si PyYAML absent |
-| `.ts/.tsx/.js/.jsx/.mjs/.cjs` | `eslint --quiet` du projet | remontée d'arbre vers `node_modules/.bin/eslint` ; jamais d'install, jamais de typecheck global, `--quiet` = erreurs seulement |
+| [jarvis-bash-guard.sh](../bin/jarvis-bash-guard.sh) | Rejects chained mutating Git/GitHub CLI operations and selected destructive Git commands. Rejects commands it cannot parse. | Heuristic shell parsing; not a sandbox. Obfuscated or indirect commands can escape its view. |
+| [jarvis-memory-guard.sh](../bin/jarvis-memory-guard.sh) | Checks configured write roots and limits growth of top-level memory files. | Applies only when the corresponding hook is installed and called with the expected payload. |
+| [jarvis-context-watch.sh](../bin/jarvis-context-watch.sh) | Warns at transcript-size thresholds of 6, 11, and 16 MB. | Transcript size is only a rough proxy for model context. This retained script uses macOS-specific file-size syntax and must not be treated as an active VPS hook. |
+| [jarvis-ship-check.py](../bin/jarvis-ship-check.py) | Fails a feature list when an item lacks an acceptance criterion, completion status, or evidence. | Validates the submitted checklist, not the product itself. |
+| [tests/doctrine/](../tests/doctrine/) | Grades selected behavioural rules against recorded fixtures and gates CI. | Checks response text, not raw tool calls or production outcomes. |
 
-Propriétés :
+## Bash guard contract
 
-- **Fail-OPEN.** Toute erreur interne → `exit 0` silencieux. Un hook de vérification qui
-  plante ne doit jamais tuer une session (à l'inverse de `bash-guard`, qui est fail-closed
-  parce qu'un garde-fou de destruction non vérifiable doit refuser).
-- **Budget borné** : `TIMEOUT_S=8` par fichier, via `run_limited` (macOS n'a pas `timeout(1)`).
-- **Diagnostic tronqué** à `MAX_OUT=2000` octets.
-- Garde anti-récursion `JARVIS_POSTTOOL_RUNNING` ; bypass utilisateur `JARVIS_POSTTOOL_BYPASS=1`.
+The Bash guard is a behavioural check for an agent hook. It is not a container,
+chroot, seccomp profile, or permission boundary.
 
-Ce qu'il **ne** fait pas : lint complet, typecheck projet, tests. Il prouve que le fichier
-n'est pas *cassé*, pas qu'il est *juste*. Il ne remplace ni la self-validation sur inputs
-réels (leçons #21, #23) ni la CI.
+It is intended to reject:
 
-## Contrat de `jarvis-bash-guard.sh`
+- Multiple mutating Git or GitHub CLI operations chained in one command.
+- Selected destructive Git operations, including force-push, hard reset, forced clean,
+  branch deletion, interactive rebase, and amended commits.
+- Empty, malformed, or unparseable hook payloads.
 
-Sorti de l'en-tête du script le 2026-09-10 (le fichier gardait 37 lignes de commentaire) ;
-le contrat vit ici, le script y renvoie.
+A normal standalone operation may still be allowed. The guard does not decide whether
+the user authorized that operation. It also cannot reliably detect commands hidden in
+encoded input, dynamic evaluation, or other indirect execution.
 
-**Nature** : garde-fou comportemental heuristique pour l'agent dans sa boucle interactive.
-Ce n'est ni un chroot, ni un conteneur, ni un seccomp.
+## Memory guard contract
 
-Garantit :
+The memory guard has two distinct checks:
 
-- blocage des batchs d'opérations d'état chaînées (`commit && push`, `merge && push`, …) ;
-- blocage des commandes git destructives (`push --force`, `reset --hard`, `clean -f`,
-  `branch -D`, `commit --amend`, `rebase -i`, `checkout -- .`), force-push par refspec
-  (`push origin +main:main`), `--force-with-lease`, `--mirror` et `push --delete` inclus ;
-- refus d'assimiler une consultation préalable (`git status`/`log`) à une autorisation
-  de détruire ;
-- **fail-closed** : payload vide, malformé ou shell non parsable ⇒ refus.
+1. A headless write-root boundary, when configured by the caller. Writes outside the
+   allowed roots are blocked before the user bypass is considered.
+2. File-count and file-size limits for selected top-level Markdown files in the
+   configured memory directory.
 
-Ne garantit pas : le code délibérément obfusqué (subshell encodé, `eval` dynamique),
-ni quoi que ce soit hors de la boucle interactive.
+A bypass only disables the growth limits; it does not disable the headless write-root
+boundary. Both protections exist only when this hook is wired into the active agent
+configuration.
 
-Bypass utilisateur : `export JARVIS_GIT_GUARD_BYPASS=1`.
+## Delivery gate contract
 
-### Force-push par refspec — corrigé le 2026-09-10
+The delivery validator checks that every feature has a description, acceptance
+criterion, valid status, and evidence when marked done. It can prove that a checklist
+contains evidence strings; it cannot prove those strings are truthful or that a real
+end-to-end flow works. Use observable verification and an independent review for the
+actual delivery.
 
-`git push origin +main:main` passait jusqu'au 2026-09-10 (lacune d'origine, pas une
-régression de la refonte). Cause : le lexer isole le `+` en token propre
-(`['git','push','origin','+','main',':','main']`), or la détection exigeait un `:`
-*dans le même token* que le `+`. La condition porte désormais sur tout argument de
-`push` commençant par `+`, et couvre aussi `--force-with-lease`, `--force-if-includes`,
-`--mirror` et `--delete`/`-d` (suppression de ref distante = destructif). Le parseur
-shell lui-même n'est pas modifié. Régression verrouillée par
-`test_force_push_by_refspec_is_blocked` ; `test_plain_push_stays_allowed` vérifie qu'un
-`git push origin main` ordinaire reste autorisé.
+## Layered protection
 
-### Limite de parsing connue
-
-Le `shlex` échoue sur une apostrophe non appariée — typiquement un commentaire français
-(`n'écrase`) dans un heredoc — et le hook, fail-closed, **refuse la commande**
-(`Syntaxe shell non vérifiable`). Contournement : écrire le script dans un fichier
-(outil `Write`) puis l'exécuter. Ne pas assouplir le fail-closed pour autant : cela
-rouvrirait le trou que le hook existe pour fermer.
-
-## Lib partagée des hooks de session
-
-`bin/jarvis-hook-lib.sh`, sourcée par `jarvis-hook-session-start.sh` et
-`jarvis-hook-prompt-submit.sh`, qui dupliquaient à l'identique la détection des sessions
-phantom et la remontée de la chaîne de processus. Même convention que `jarvis-paths.sh` :
-à plat dans `bin/`, donc résolue comme fichier frère depuis `~/.local/bin` après
-déploiement.
-
-> **Piège de déploiement.** `~/.local/bin/jarvis-*` sont des symlinks vers le repo : une
-> édition dans `bin/` est active immédiatement. Ajouter un `source` d'un **nouveau**
-> fichier casse donc les hooks tant que son symlink n'existe pas. Créer le symlink
-> (ou relancer `./bootstrap.sh`) dans le même mouvement que l'ajout du `source`.
-
-## Coût mesuré (2026-09-10, sur ce Mac)
-
-| Hook | Déclenchement | Avant | Après |
-|---|---|---:|---:|
-| `jarvis-bash-guard.sh` | chaque Bash | 96 ms | **36 ms** |
-| `jarvis-memory-guard.sh` | chaque écriture | 13 ms | 12 ms |
-| `jarvis-warm-tracker.sh` | chaque Read | 12 ms | 10 ms |
-| `jarvis-posttool-verify.sh` | chaque écriture | — | 74 ms |
-
-Le gain sur `bash-guard` vient d'un seul changement : la section d'interprétation
-relançait **cinq processus `python3`** sur le même JSON ; c'est désormais `jq`, déjà
-prérequis. Le parseur shell, lui, n'a pas été touché — c'est lui qui porte la garantie.
-
-`jarvis-posttool-verify.sh` a coûté 1 042 ms dans sa première version : la boucle
-d'attente faisait `sleep 1` avant son premier test alors que le process était encore
-vif, donc une seconde pleine à chaque écriture. Sondage à 50 ms et borne sur `$SECONDS`.
-
-## Fragments et déploiement
-
-| Fragment | Fusionné dans | Stratégie |
+| Layer | What it contributes | What it cannot establish |
 |---|---|---|
-| `claude-config/settings.hooks.json` | `.hooks` | additif par événement + matcher, comparé par `.command` |
-| `claude-config/settings.permissions.json` | `.permissions.deny` | union (`unique`) |
+| Agent permissions | Blocks configured tool actions before execution | Cannot protect actions outside that agent configuration |
+| Hooks and local scripts | Fast checks at selected tool boundaries | Cannot replace OS isolation or server-side policy |
+| CI and repository permissions | Enforce checks and review rules on published changes | Cannot prove live services are healthy |
+| VPS access controls and backups | Protect the deployed runtime and its data | Must be verified in the private deployment inventory |
 
-Les deux merges sont **idempotents** et ne suppriment jamais une entrée tierce ou ajoutée
-à la main. Symétriquement, `./bootstrap.sh --uninstall` retire *uniquement* ce que le
-fragment déclare (set difference) : un `deny` écrit à la main par le boss survit.
-
-**Décommissionner une règle = la retirer du fragment ET de `~/.claude/settings.json`.**
-La retirer du seul fragment la rend orpheline et non désinstallable (leçon #20 : le
-bootstrap ressuscite ce qui reste en source ; ici le risque miroir est l'inverse).
-
-## Règles `deny` qui peuvent gêner
-
-- `Read(**/.env)` / `Read(**/.env.*)` — bloque aussi la lecture légitime d'un `.env` client
-  en diagnostic. C'est délibéré (les secrets n'entrent pas dans le contexte), mais c'est la
-  règle qui mordra le plus souvent. Retrait = une ligne du fragment.
-- `Bash(git push --force-with-lease:*)` — le force *sûr* est dénié lui aussi, parce que la
-  doctrine exige de toute façon une validation explicite du boss avant tout push.
-- `Bash(git add -A:*)`, `Bash(git commit -a:*)` — mécanisation de la règle CLAUDE.md §3
-  (commit par pathspec explicite, plusieurs sessions partagent le `.git/index`).
-
-Un `deny` ne se contourne pas par un prompt : il faut éditer `settings.json`. C'est
-volontaire.
+Never describe a protection as active based only on its source file. Check the private
+VPS configuration and the latest runtime verdict.

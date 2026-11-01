@@ -1,6 +1,7 @@
 ---
-title: Self-hosted infrastructure notes
+title: Synthetic infrastructure example
 tags: [infra, network]
+note: Fictional sample corpus entry; not Porunga's current VPS architecture.
 ---
 
 # Running services at home

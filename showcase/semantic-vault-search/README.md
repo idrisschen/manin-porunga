@@ -7,10 +7,9 @@
 > meaning rather than keyword overlap. It is the **retrieval layer of a RAG
 > system** — the "R" you wire under any LLM that needs grounded context.
 
-This folder is a recruiter-legible extract of a component that runs in
-production inside a larger personal-assistant codebase. The production code is
-**not duplicated here** — the demo imports it directly (see
-[Relationship to production](#relationship-to-production-code)).
+This folder is a runnable, historical prototype from an earlier Porunga design.
+The public mirror preserves the demo and its reference modules; they are not part
+of the current VPS runtime. The demo uses only the included public sample corpus.
 
 The demo goes past "embeddings work" and shows the three things a RAG layer
 actually needs to be trustworthy:
@@ -49,7 +48,7 @@ roughly a third of queries because it still depended on literal token overlap.
 ## The approach
 
 ```
-                          INDEX TIME (batch, nightly cron)
+                          DEMO INDEX TIME (in memory)
   ┌────────────┐   chunk    ┌──────────┐  embed "passage:"  ┌──────────────┐
   │ .md corpus │ ─────────► │  chunks  │ ─────────────────► │  sqlite-vec  │
   │ (vault)    │ paragraph  │ ~600 chr │  e5-small (384-d)  │  vec0 table  │
@@ -68,7 +67,7 @@ roughly a third of queries because it still depended on literal token overlap.
 
 ```mermaid
 flowchart LR
-    subgraph Index["Index time — nightly, incremental"]
+    subgraph Index["Demo index time — built from sample files"]
         A[Markdown corpus] -->|strip frontmatter<br/>split by paragraph<br/>~600 char target| B[Chunks]
         B -->|"prefix: passage:<br/>e5-small, 384-d, L2-normalized"| C[Embeddings]
         C --> D[(sqlite-vec<br/>vec0 virtual table)]
@@ -91,8 +90,8 @@ is what makes a short question match a long note about the same idea. Small +
 quantizable means it runs on a laptop CPU.
 
 **Chunking — paragraph-based with a character cap.**
-See [How chunking works](#how-chunking-works-the-production-chunker) below for the
-full walkthrough of the production `chunk_markdown` the demo imports. In short:
+See [How chunking works](#how-chunking-works-the-included-reference-chunker) below for the
+full walkthrough of the reference `chunk_markdown` function the demo imports. In short:
 strip YAML frontmatter, split on blank lines, aggregate paragraphs up to a
 ~600-char target, hard-cap at 1500 (over-long paragraphs fall back to sentence
 splitting), drop sub-20-char fragments. A paragraph is the natural unit of a
@@ -114,9 +113,10 @@ ORDER BY distance` (sqlite-vec's KNN form). Displayed score is `(1 − distance)
 as a percent — higher is closer.
 
 **Incremental indexing.**
-The nightly job re-embeds a file only when both its `mtime` *and* its `md5` have
-changed (so a `touch` doesn't trigger re-embedding), and prunes DB rows for files
-deleted from disk.
+The reference indexer re-embeds a file only when both its `mtime` *and* its `md5`
+have changed (so a `touch` doesn't trigger re-embedding), and prunes DB rows for
+files deleted from disk. The demo builds an in-memory index from the included
+sample files when it runs; it does not install a scheduler.
 
 ### As a RAG building block
 
@@ -245,7 +245,7 @@ threshold is tunable with `--threshold`.
 > single global cosine threshold you trade off false-refusals against false-
 > answers; the right value depends on the corpus and the cost of each error. The
 > demo's point is the **mechanism** (a calibrated floor that produces an explicit
-> refusal), not that 40 % is universal. A production system would calibrate per
+> refusal), not that 40 % is universal. A deployed system would calibrate per
 > corpus and could add a cross-encoder re-rank above the floor.
 
 ---
@@ -311,11 +311,11 @@ overlapped.**
 
 ---
 
-## How chunking works (the production chunker)
+## How chunking works (the included reference chunker)
 
-The demo does not reimplement chunking — it imports `chunk_markdown()` straight
-from the production indexer ([`bin/jarvis-vault-index.py`](../../bin/jarvis-vault-index.py)).
-The algorithm, in order:
+The demo uses the `chunk_markdown()` reference function included in this public
+repository ([`bin/jarvis-vault-index.py`](../../bin/jarvis-vault-index.py)). It is
+not the current production indexer. The algorithm, in order:
 
 1. **Strip YAML frontmatter.** If the file starts with `---`, everything up to
    the closing `---` is dropped (titles/tags are metadata, not retrievable prose).
@@ -344,7 +344,7 @@ above.
 
 ---
 
-## Measured numbers (this machine — Apple Silicon laptop, CPU only)
+## Historical demo measurements (Apple Silicon laptop, CPU only)
 
 > Honest disclosure: these are tiny-corpus numbers I actually measured with
 > `python demo.py --bench` (averaged across repeated runs). Your hardware and
@@ -357,41 +357,28 @@ above.
 | Index build (6 chunks → embeddings → sqlite-vec) | ~0.3 s |
 | Query, average of 5 (warm model, in-process) | ~32–34 ms |
 
-The cold model load is paid once per process; in production the CLI keeps it warm
-within a session, and indexing is a nightly batch, so the interactive cost a user
-feels is the per-query figure.
+These numbers describe only the old sample-corpus demo on that laptop. They are
+not measurements of the current VPS runtime or its retrieval path.
 
 ---
 
-## Relationship to production code
+## Relationship to the current runtime
 
-This showcase **does not fork** the engine. `demo.py` imports the production
-modules by path and calls their real functions:
+The demo imports the included reference modules by path:
 
-- **Chunker** — `demo.py` imports `chunk_markdown()` straight from
-  [`bin/jarvis-vault-index.py`](../../bin/jarvis-vault-index.py). The demo's index
-  build is the same chunk → `passage:` prefix → embed → `vec0` flow as the
-  production indexer.
-- **Query path** — the demo's `search()` mirrors
+- **Chunker** — `demo.py` imports `chunk_markdown()` from
+  [`bin/jarvis-vault-index.py`](../../bin/jarvis-vault-index.py). The demo builds
+  an in-memory index using the same reference chunking flow.
+- **Query path** — the demo's `search()` mirrors the included reference
   [`bin/vault-search-v2.py`](../../bin/vault-search-v2.py) exactly: the e5
   `query:` prefix, the `WHERE embedding MATCH ? AND k = ? ORDER BY distance`
-  sqlite-vec query shape, and the `(1 − distance) × 100` score the production CLI
-  prints.
+  sqlite-vec query shape, and the `(1 − distance) × 100` score used by that CLI.
 
-The grounding/refusal/naive-baseline layers are **demo-only additions on top of**
-that shared retrieval — they wrap the production query path, they don't alter it.
-The demo's refusal gate and keyword baseline live in `demo.py` for
-illustration. The production CLI has since gone further: **hybrid retrieval**
-— vector KNN fused with FTS5 keyword recall via Reciprocal Rank Fusion (RRF),
-behind its own confidence gate (low best-similarity with zero keyword
-corroboration → refuse rather than guess).
+The grounding, refusal, and naive-baseline layers are demo-only. The current
+production runtime uses structured Markdown indexes and deterministic lexical
+retrieval; it does not deploy this vector-search prototype.
 
-The only thing the demo substitutes is the **corpus** (tiny public fixtures
-instead of the private vault) and the **DB location** (in-memory instead of
-`~/.local/share/jarvis/vault.db`) — so it's runnable by anyone, while exercising
-the production logic rather than a reimplementation.
-
-Production source:
+Included historical reference modules:
 [`bin/vault-search-v2.py`](../../bin/vault-search-v2.py) (search engine) and
 [`bin/jarvis-vault-index.py`](../../bin/jarvis-vault-index.py) (indexer).
 
@@ -402,5 +389,5 @@ Production source:
 | File | Purpose |
 |---|---|
 | `README.md` | This write-up. |
-| `demo.py` | Runnable demo: imports the production chunker, builds an in-memory sqlite-vec index over the sample corpus, then runs **grounded** semantic queries (file#chunk + score citations), a **refuse-to-answer** threshold gate (`--refuse-demo`), and a **naive-keyword-vs-semantic** side-by-side (`--compare`), printing measured timings (`--bench`). Degrades gracefully without deps. |
-| `sample_corpus/*.md` | Five short public notes so the demo runs without the private vault. |
+| `demo.py` | Runnable demo: imports the included reference chunker, builds an in-memory sqlite-vec index over the sample corpus, then runs **grounded** semantic queries (file#chunk + score citations), a **refuse-to-answer** threshold gate (`--refuse-demo`), and a **naive-keyword-vs-semantic** side-by-side (`--compare`), printing demo timings (`--bench`). Degrades gracefully without deps. |
+| `sample_corpus/*.md` | Five synthetic public notes so the demo runs without private data. `homelab.md` is an example corpus fixture, not Porunga's current architecture. |

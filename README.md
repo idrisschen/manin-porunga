@@ -14,22 +14,19 @@
   <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/obsidian.svg" width="30" title="Obsidian vault — the memory" alt="Obsidian" />&nbsp;&nbsp;
   <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/github.svg" width="30" title="git — the canon" alt="GitHub" />&nbsp;&nbsp;
   <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/python.svg" width="30" title="Python — engine & evals" alt="Python" />&nbsp;&nbsp;
-  <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/tailscale.svg" width="30" title="Tailscale — Mac ↔ homelab mesh" alt="Tailscale" />&nbsp;&nbsp;
-  <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/proxmox.svg" width="30" title="Proxmox — homelab, background 24/7" alt="Proxmox" />&nbsp;&nbsp;
-  <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/telegram.svg" width="30" title="Telegram — Leo, the co-equal majordomo" alt="Telegram" />&nbsp;&nbsp;
   <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/notion.svg" width="30" title="Notion — archive of machine outputs" alt="Notion" />
 </p>
 
 <p align="center">
-  <strong>A reliable autonomous AI agent control room on top of LLMs — durable Markdown memory, multi-agent model diversity, eval-tested guardrails, and gated delivery.</strong><br />
-  The memory is a Markdown vault, the canon is git, the models run only when I say so.
+  <strong>A VPS-based personal AI control room — private memory, model diversity, eval-tested guardrails, and gated delivery.</strong><br />
+  Porunga runs on one VPS. This public repository is a curated mirror, not the deployment source.
 </p>
 
 <p align="center">
-  <sub>Curated public mirror of a private system I build and run daily. Kept deliberately
+  <sub>Curated public mirror of a private system. Kept deliberately
   dense — only the pieces worth reading: the <a href="#evaluation">CI-gated eval harness</a>,
   the <a href="#notable-delivery-contract--gating">notable delivery gate</a>, the
-  <a href="#showcase-semantic-vault-search-hybrid-rag">offline hybrid RAG engine</a>, the
+  <a href="#showcase-semantic-vault-search">offline retrieval demo</a>, the
   operating doctrine, and the mechanical guardrails.</sub>
 </p>
 
@@ -42,22 +39,20 @@
 
 ## Why
 
-The interesting part of "personal AI" isn't prompt crafting — it's **where the memory
-lives, who is allowed to touch it, and how you enforce reliability when agents touch production**.
-Most setups bury memory in opaque vendor databases; this architecture keeps it in plain Markdown
-files you already own.
+The interesting part of a personal AI system is **where it runs, where its memory lives,
+and which source wins when copies disagree**. Porunga's production runtime now lives on one
+VPS. There are no Porunga runtime components, hooks, timers, or persistent stores on the
+Mac; a computer used to connect is only an access client.
 
-The brain is an [Obsidian](https://obsidian.md) vault: the same files I read and write as a
-human *are* the assistant's memory — no export pipeline, no drift. Code, docs and
-decisions live in a private git repository, which is **the canon**: on any divergence,
-git wins. The vault stays the single edit point for memory and is mirrored nightly into
-that repository as a versioned archive. A live replica of the vault (Syncthing over Tailscale) sits
-in the homelab, so the second majordomo reads and writes the same memory. Notion is only
-the archive for machine outputs — briefs, watchtower reports — never an
-authoritative source. The brain doesn't move; the runtimes and harnesses are swappable.
+The private Porunga repository and private knowledge base remain the sources of truth. This
+repository is a sanitized public mirror with examples, guardrail scripts, and evaluation
+fixtures. It is not pulled by the VPS and must not be treated as the production deployment
+source. Notion is an archive for selected machine outputs, not an authority for code or doctrine.
+
+See the [current architecture and timer inventory](docs/architecture.md).
 
 <p align="center">
-  <a href="docs/assets/setup-map.html"><img src="docs/assets/setup-map.png" alt="Setup map: a MacBook running Orca, Claude Code (Jarvis) and Codex on the Porunga repo and Obsidian vault, linked over Tailscale to a Proxmox homelab running Leo (Hermes Agent), a live vault replica and background routines; GitHub holds the code canon, Notion the archive." width="100%" /></a>
+  <a href="docs/assets/setup-map.html"><img src="docs/assets/setup-map.png" alt="Current Porunga architecture: remote operator clients connect to the sole VPS runtime; private code and memory stay outside this curated public repository." width="100%" /></a>
 </p>
 
 ## What this demonstrates (engineering)
@@ -67,12 +62,12 @@ authoritative source. The brain doesn't move; the runtimes and harnesses are swa
 
 | Component in this repo | AI-engineering competency |
 |---|---|
-| Tiered **HOT / WARM / COLD** memory + **path-scoped rules** + **cross-agent bridges** ([`AGENTS.md`](./AGENTS.md)) | **Context engineering** — managing token budget deliberately instead of dumping everything in. Multi-harness projection keeps doctrine identical across Claude Code, Codex and Hermes. |
-| **Hybrid retrieval** ([`bin/vault-search-v2.py`](./bin/vault-search-v2.py)) + **Post-RAG architectural pivot** | **Retrieval / RAG** — dense vectors (`sqlite-vec` + e5) fused with FTS5 keyword recall via Reciprocal Rank Fusion, with a refuse-to-answer similarity gate. AND senior judgment: knowing when vector RAG is needed vs when structured Markdown indexes + `ripgrep` offer superior speed (<10 ms), zero dependencies, and complete determinism. |
-| Jarvis / Leo across **deliberately different model families**, Orca-spawned harnesses | **Multi-agent orchestration** — two co-equal majordomos on distinct lineages so they don't share blind spots: Claude-lineage Jarvis (Claude Code, with Codex as a second harness under Orca), GPT-lineage Leo (Hermes Agent). Either can be asked to challenge the other; the human decides. |
+| Tiered **HOT / WARM / COLD** memory + **path-scoped rules** + **cross-harness bridges** ([`AGENTS.md`](./AGENTS.md)) | **Context engineering** — managing token budget deliberately instead of dumping everything in. The public mirror shows portable doctrine and examples; private runtime wiring stays private. |
+| **Offline retrieval demo** ([`showcase/semantic-vault-search/`](./showcase/semantic-vault-search/)) + **Post-RAG architectural pivot** | **Retrieval / RAG** — this repository preserves a runnable hybrid retrieval prototype. Current production retrieval uses structured indexes and deterministic lexical search; the demo is not a VPS service. |
+| Multi-agent roles across different model families | **Multi-agent orchestration** — the doctrine shows how independent agents can challenge one another. This public mirror does not describe private client, model, or provider wiring. |
 | **Notable Delivery Contract** ([`bin/jarvis-ship-check.py`](./bin/jarvis-ship-check.py)) | **Delivery engineering & QA** — moving beyond "it compiles": pre-code hypothesis audits, vertical observable slices with verifiable E2E proof, and independent review in fresh context before calling a feature "ready". |
 | Doctrine evaluation harness ([`tests/doctrine/`](./tests/doctrine)) | **LLM evaluation** — assistant behaviour tested against 14 scenarios across 6 categories, not assumed correct: weighted scoring, category aggregation, **regression detection vs previous run**, non-zero exit gating CI. |
-| "No background cron on the laptop calls the LLM", deterministic token observability ([`bin/jarvis-token-report`](./bin/jarvis-token-report), kept as reference — retired from production in October 2026) | **LLMOps & cost control** — every inference is intentional. Prompt caching hit ratio (targeting >80%) and token usage measured deterministically with 0 network calls and 0 LLM queries. |
+| VPS-only background runtime + deterministic token observability ([`bin/jarvis-token-report`](./bin/jarvis-token-report), reference script) | **LLMOps & cost control** — background work runs from the VPS; token reporting code in this mirror is an example, not a live service. |
 | PreToolUse hooks, sequential state ops, memory boundaries ([`bin/jarvis-bash-guard.sh`](./bin/jarvis-bash-guard.sh), [`bin/jarvis-memory-guard.sh`](./bin/jarvis-memory-guard.sh)) | **AI safety & reliability** — mechanical guardrails around an autonomous agent: intercepts batched mutating git commands and `rm -rf`, enforces headless write-roots boundaries, and warns before "dumb zone" marathon sessions. |
 | Incident-forged, **dated** operating rules | **Production discipline** — real failures turned into enforced checks, not blog best-practices. |
 
@@ -80,16 +75,17 @@ authoritative source. The brain doesn't move; the runtimes and harnesses are swa
 > key numbers, honest limits and anticipated interview answers are in
 > **[AI Engineer signals](docs/ai-engineer-signals.md)**.
 
-## The staff
+## Runtime boundary
 
-One shared doctrine, two co-equal majordomos on **different model families** — so they
-don't share blind spots. Either can challenge the other on demand; **I decide**.
+| Layer | Location | Responsibility |
+|---|---|---|
+| Porunga runtime | **VPS — sole execution host** | Runs Porunga routines, persistent memory services, and scheduled work. |
+| Operator device | Remote access client | Starts or observes remote sessions; does not host Porunga services, timers, or persistent state. |
+| Private canon | Private Git repository and knowledge base | Holds production code, configuration, doctrine, and private data. |
+| This repository | Public GitHub mirror | Holds sanitized documentation, examples, and evaluation material; it is not deployed. |
 
-| Agent | Where | Role | Runs on |
-|---|---|---|---|
-| **Jarvis** | MacBook, spawned by [Orca](https://github.com/stablyai/orca) | **Builder** — writes code, runs routines, edits the vault (HOT / WARM memory). Commits locally; never pushes/deploys without explicit confirmation. Sub-agents on demand. | [Claude Code](https://claude.com/claude-code) (Opus 5.5 · hooks · MCP) |
-| **Codex** | MacBook, spawned by Orca | **Second harness** — same doctrine projected by `jarvis-codex-bridge` (`AGENTS.md` + skills), same memory, same skills. | [Codex](https://github.com/openai/codex) |
-| **Leo** | phone (Telegram) · homelab LXC | **Co-equal majordomo** — same doctrine (projected into its SOUL), reads and writes the live vault replica. Challenges on demand or when it sees a real risk, with verdicts (*validated / with-reservations / not-validated*), not flattery. | [Hermes Agent](https://nousresearch.com) on GPT-6 Luna (`openai-codex`) |
+The word **VPS** is the public-facing name for the runtime. The provider, host identity,
+network details, and private paths are omitted from this repository.
 
 ## Features
 
@@ -115,9 +111,10 @@ don't share blind spots. Either can challenge the other on demand; **I decide**.
   `jarvis-memory-guard.sh` limits memory bloat, and `jarvis-context-watch.sh` warns before "dumb zone" sessions.
 - **Tested doctrine** — the assistant's policy rules live in `tests/doctrine/` as scenarios;
   the rules are *tested in CI*, not just written.
-- **Python engine** — in October 2026 the private runtime was rewritten from Bash into a
-  single unit-tested Python package (~14k lines); every historical script name became a
-  4-line launcher. This mirror keeps the standalone, runnable pieces.
+- **VPS runtime** — scheduled Porunga work runs on the VPS through six active systemd user
+  timers. The current inventory is in [`docs/architecture.md`](docs/architecture.md).
+- **Curated code** — this mirror keeps standalone, runnable pieces and historical references;
+  it is not a complete copy of the production runtime.
 
 ## The memory model
 
@@ -172,7 +169,7 @@ python3 bin/jarvis-ship-check.py ~/.local/var/jarvis-ship/my-app-user-authentica
 2. **Vertical observable slices**: each deliverable is an end-to-end verified slice (not horizontal UI/API/DB splits).
 3. **Independent review in fresh context**: "ready" requires E2E proof + review in a clean context without builder narrative bias.
 
-## Showcase: semantic vault search (hybrid RAG)
+## Showcase: semantic vault search
 
 A self-contained, **offline** hybrid retrieval engine demonstrating the retrieval layer of a RAG
 pipeline: local embeddings (`multilingual-e5-small`) + `sqlite-vec` vector store fused with FTS5
@@ -182,16 +179,18 @@ similarity threshold (anti-hallucination move).
 → **[`showcase/semantic-vault-search/`](showcase/semantic-vault-search/)** —
 write-up, architecture diagram, and a runnable `demo.py` on an included sample corpus (no private data needed).
 
-> **The Post-RAG architectural pivot**: while this hybrid RAG pipeline is fully functional and demonstrated here,
-> production Porunga transitioned daily notes retrieval to structured hierarchical Markdown indexes (`_vault-index.md`),
-> a symptom dispatcher, and `ripgrep`. For a personal corpus of <10,000 files, deterministic lexical retrieval runs in
-> **<10 ms** (vs 10 s cold start for PyTorch), has zero external dependencies, and eliminates vector drift. Senior engineering
-> is knowing *when* to use RAG and *when* structured context engineering is superior.
+> **Not a production service.** This is an offline, historical prototype preserved for study.
+> The current Porunga runtime is on the VPS and uses structured Markdown indexes and
+> deterministic lexical retrieval for daily knowledge lookup. The demo is never deployed
+> by this public repository.
 
 ## Guardrails, forged from incidents
 
 Every rule in this system has an incident behind it. You can fork rules — you can't fork
 scar tissue, so the *why* sits next to each:
+
+The scripts below are curated examples. Their presence in this mirror does not mean they
+are installed on the VPS; see [guardrail scope](docs/garde-fous.md) for limits and status.
 
 | Rule | The incident behind it | Mechanical enforcement |
 |---|---|---|
@@ -206,12 +205,12 @@ Full operating doctrine: [**BEST-PRACTICES.md**](./BEST-PRACTICES.md).
 ## What's in the box
 
 ```
-tests/doctrine/ ← the eval harness: 14 graded scenarios, weighted scoring, CI regression gate
-bin/            ← guardrail hooks, delivery gates, token report, multi-agent bridges, retrieval engine
-memory/         ← the operating doctrine, sanitized (persona, profile, decisions, workflows)
-claude-config/  ← path-scoped rules + the @import wiring
-showcase/       ← hybrid RAG demo — runnable on included sample corpus
-docs/           ← recruiter-first competence mapping: ai-engineer-signals.md
+tests/doctrine/ ← 14 graded scenarios, weighted scoring, CI regression gate
+bin/            ← guardrail hooks, delivery gates, bridge examples, historical retrieval tools
+memory/         ← sanitized example templates; not the live memory store
+claude-config/  ← path-scoped rule examples and a sanitized import template
+showcase/       ← offline retrieval prototype on an included sample corpus
+docs/            ← current VPS architecture, guardrail scope, competence map
 AGENTS.md       ← standard cross-agent entry point (agents.md specification)
 BEST-PRACTICES.md ← incident-forged operating doctrine
 ```
@@ -228,7 +227,7 @@ python3 tests/doctrine/runner.py
 python3 bin/jarvis-ship-template.py sprint "Password reset flow" auth-app --out /tmp/sample.json
 python3 bin/jarvis-ship-check.py /tmp/sample.json
 
-# 3. The hybrid RAG showcase — local embeddings + FTS5 over sample corpus
+# 3. The offline retrieval showcase — local embeddings + FTS5 over sample corpus
 cd showcase/semantic-vault-search
 pip install "sentence-transformers>=2.7" sqlite-vec numpy
 python3 demo.py "how do I keep my services isolated?"
@@ -236,4 +235,5 @@ python3 demo.py "how do I keep my services isolated?"
 
 ## License
 
-**MIT** — see [`LICENSE`](./LICENSE). Curated public mirror; personal data and private vault notes are never committed here.
+**MIT** — see [`LICENSE`](./LICENSE). Curated public mirror; production code, credentials,
+runtime data, and private vault notes are never committed here.

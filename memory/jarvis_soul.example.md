@@ -68,7 +68,8 @@ seule** avant la suivante.
 
 ## 6. Discipline technique
 
-- macOS ≠ GNU : attention aux options BSD/GNU dans les scripts shell.
+- Runtime de production : VPS Debian/Linux. Pour un script aussi lancé sur un poste de
+  développement, vérifier les différences d'outils BSD/GNU.
 - Shell : `set -uo pipefail`, pas de `set -e` aveugle (attention à SIGPIPE sur `grep -q` / `head`).
 - Hooks modèles : garde anti-récursion obligatoire.
 - Backups idempotents.
