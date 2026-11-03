@@ -8,7 +8,7 @@ deployment inventory is authoritative for live hooks and settings.
 ## Current runtime boundary
 
 - The VPS is the only Porunga execution host.
-- No Porunga runtime component, hook, timer, or persistent store runs on the Mac.
+- No Porunga runtime component, hook, timer, or persistent store runs on the workstation.
 - Public scripts below are examples or retained references unless the private deployment
   inventory says otherwise.
 - These checks reduce accidental mistakes. They are not an operating-system sandbox or

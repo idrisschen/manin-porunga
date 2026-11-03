@@ -5,20 +5,23 @@
 <h1 align="center">Manin Porunga</h1>
 
 <p align="center">
-  <a href="https://github.com/ibhugeloo/manin-porunga/actions/workflows/evals.yml"><img src="https://github.com/ibhugeloo/manin-porunga/actions/workflows/evals.yml/badge.svg" alt="doctrine evals" /></a>
+  <a href="https://github.com/idrisschen/manin-porunga/actions/workflows/evals.yml"><img src="https://github.com/idrisschen/manin-porunga/actions/workflows/evals.yml/badge.svg" alt="doctrine evals" /></a>
 </p>
 
 <p align="center">
   <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/claude-ai.svg" width="30" title="Claude Code" alt="Claude" />&nbsp;&nbsp;
-  <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/openai.svg" width="30" title="Codex — second harness, same doctrine" alt="Codex" />&nbsp;&nbsp;
+  <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/openai.svg" width="30" title="GPT lineage — Leo, and Codex as execution fallback" alt="OpenAI" />&nbsp;&nbsp;
+  <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/deepseek.svg" width="30" title="DeepSeek — default execution engine" alt="DeepSeek" />&nbsp;&nbsp;
   <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/obsidian.svg" width="30" title="Obsidian vault — the memory" alt="Obsidian" />&nbsp;&nbsp;
   <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/github.svg" width="30" title="git — the canon" alt="GitHub" />&nbsp;&nbsp;
   <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/python.svg" width="30" title="Python — engine & evals" alt="Python" />&nbsp;&nbsp;
+  <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/postgres.svg" width="30" title="PostgreSQL + pgvector — agent memory" alt="PostgreSQL" />&nbsp;&nbsp;
+  <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/discord.svg" width="30" title="Discord — organ notifications" alt="Discord" />&nbsp;&nbsp;
   <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/notion.svg" width="30" title="Notion — archive of machine outputs" alt="Notion" />
 </p>
 
 <p align="center">
-  <strong>A VPS-based personal AI control room — private memory, model diversity, eval-tested guardrails, and gated delivery.</strong><br />
+  <strong>A VPS-based personal AI control room — two peer agents from different model families, Claude as orchestrator, cheap execution engines, eval-tested guardrails, and gated delivery.</strong><br />
   Porunga runs on one VPS. This public repository is a curated mirror, not the deployment source.
 </p>
 
@@ -39,20 +42,27 @@
 
 ## Why
 
-The interesting part of a personal AI system is **where it runs, where its memory lives,
-and which source wins when copies disagree**. Porunga's production runtime now lives on one
-VPS. There are no Porunga runtime components, hooks, timers, or persistent stores on the
-Mac; a computer used to connect is only an access client.
+The interesting part of a personal AI system is **where it runs, who decides, which model
+does the work, and which source wins when copies disagree**. Porunga runs on one VPS:
+
+- **Hublot**, a private PWA hub, is where the operator talks to the agents. A Claude Router
+  answers or dispatches leased jobs; every external action goes through a human approval gate.
+- **Two peer majordomos** share the host under separate identities — Jarvis (Claude lineage)
+  and Leo (GPT lineage, Hermes agent) — with separate memories, so either can challenge the other.
+- **Claude orchestrates, it does not execute.** Routines, delegated tasks and code sessions run on
+  DeepSeek Flash, fall back to Codex on quota exhaustion, and never silently switch back to Claude.
+- **Eight systemd timers** run the organs (production health, brief, watchdogs, backups, sync)
+  and report to Discord. The workstation is an interactive client only.
 
 The private Porunga repository and private knowledge base remain the sources of truth. This
 repository is a sanitized public mirror with examples, guardrail scripts, and evaluation
 fixtures. It is not pulled by the VPS and must not be treated as the production deployment
 source. Notion is an archive for selected machine outputs, not an authority for code or doctrine.
 
-See the [current architecture and timer inventory](docs/architecture.md).
+See the [current architecture, engine routing and timer inventory](docs/architecture.md) (verified 2026-11-03).
 
 <p align="center">
-  <a href="docs/assets/setup-map.html"><img src="docs/assets/setup-map.png" alt="Current Porunga architecture: remote operator clients connect to the sole VPS runtime; private code and memory stay outside this curated public repository." width="100%" /></a>
+  <a href="docs/assets/setup-map.html"><img src="docs/assets/setup-map.png" alt="Porunga architecture: operator clients reach the Hublot hub on the sole VPS; a Claude Router dispatches jobs to Jarvis and Leo; execution runs on DeepSeek with Codex fallback; eight timers report to Discord; private Git and vault remain the sources of truth; this public repository is not deployed." width="100%" /></a>
 </p>
 
 ## What this demonstrates (engineering)
@@ -63,11 +73,12 @@ See the [current architecture and timer inventory](docs/architecture.md).
 | Component in this repo | AI-engineering competency |
 |---|---|
 | Tiered **HOT / WARM / COLD** memory + **path-scoped rules** + **cross-harness bridges** ([`AGENTS.md`](./AGENTS.md)) | **Context engineering** — managing token budget deliberately instead of dumping everything in. The public mirror shows portable doctrine and examples; private runtime wiring stays private. |
-| **Offline retrieval demo** ([`showcase/semantic-vault-search/`](./showcase/semantic-vault-search/)) + **Post-RAG architectural pivot** | **Retrieval / RAG** — this repository preserves a runnable hybrid retrieval prototype. Current production retrieval uses structured indexes and deterministic lexical search; the demo is not a VPS service. |
-| Multi-agent roles across different model families | **Multi-agent orchestration** — the doctrine shows how independent agents can challenge one another. This public mirror does not describe private client, model, or provider wiring. |
+| **Offline retrieval demo** ([`showcase/semantic-vault-search/`](./showcase/semantic-vault-search/)) | **Retrieval / RAG** — a runnable hybrid retrieval prototype. In production, knowledge lookup uses structured indexes and lexical search, and agent memory is recalled from PostgreSQL + pgvector with a local multilingual embedding model; the demo itself is not deployed. |
+| Hublot hub, leased workers, two peer agents from different model families ([architecture](docs/architecture.md)) | **Multi-agent orchestration** — a Router dispatches jobs under leases, agents keep separate identities and memories, irreversible calls get a cross-family second opinion, and external actions require human approval. |
+| Engine routing: Claude orchestrates, DeepSeek executes, Codex on quota | **LLM cost engineering** — the expensive model only frames, reviews and replies; execution is routed through quota gates with a single, logged fallback and no silent escalation. |
 | **Notable Delivery Contract** ([`bin/jarvis-ship-check.py`](./bin/jarvis-ship-check.py)) | **Delivery engineering & QA** — moving beyond "it compiles": pre-code hypothesis audits, vertical observable slices with verifiable E2E proof, and independent review in fresh context before calling a feature "ready". |
 | Doctrine evaluation harness ([`tests/doctrine/`](./tests/doctrine)) | **LLM evaluation** — assistant behaviour tested against 14 scenarios across 6 categories, not assumed correct: weighted scoring, category aggregation, **regression detection vs previous run**, non-zero exit gating CI. |
-| VPS-only background runtime + deterministic token observability ([`bin/jarvis-token-report`](./bin/jarvis-token-report), reference script) | **LLMOps & cost control** — background work runs from the VPS; token reporting code in this mirror is an example, not a live service. |
+| VPS-only background runtime, eight observable timers, deterministic token observability ([`bin/jarvis-token-report`](./bin/jarvis-token-report), reference script) | **LLMOps** — every organ has a reader of its verdict (success, failure, absence, delay); deterministic organs use no model at all. The token report here is an example, not a live service. |
 | PreToolUse hooks, sequential state ops, memory boundaries ([`bin/jarvis-bash-guard.sh`](./bin/jarvis-bash-guard.sh), [`bin/jarvis-memory-guard.sh`](./bin/jarvis-memory-guard.sh)) | **AI safety & reliability** — mechanical guardrails around an autonomous agent: intercepts batched mutating git commands and `rm -rf`, enforces headless write-roots boundaries, and warns before "dumb zone" marathon sessions. |
 | Incident-forged, **dated** operating rules | **Production discipline** — real failures turned into enforced checks, not blog best-practices. |
 
@@ -79,8 +90,9 @@ See the [current architecture and timer inventory](docs/architecture.md).
 
 | Layer | Location | Responsibility |
 |---|---|---|
-| Porunga runtime | **VPS — sole execution host** | Runs Porunga routines, persistent memory services, and scheduled work. |
-| Operator device | Remote access client | Starts or observes remote sessions; does not host Porunga services, timers, or persistent state. |
+| Porunga runtime | **VPS — sole execution host** | Hublot hub and relays, both agents' workers, scheduled organs, memory databases, isolated agent browsers. |
+| Operator access | Hublot PWA, private Telegram DM, Claude remote sessions, Discord | Talks to the Router, approves external actions, reads organ verdicts. |
+| Workstation | Interactive client | Vault editing, computer use, IDE; hosts no Porunga timer, background organ, or persistent store. |
 | Private canon | Private Git repository and knowledge base | Holds production code, configuration, doctrine, and private data. |
 | This repository | Public GitHub mirror | Holds sanitized documentation, examples, and evaluation material; it is not deployed. |
 
@@ -111,8 +123,12 @@ network details, and private paths are omitted from this repository.
   `jarvis-memory-guard.sh` limits memory bloat, and `jarvis-context-watch.sh` warns before "dumb zone" sessions.
 - **Tested doctrine** — the assistant's policy rules live in `tests/doctrine/` as scenarios;
   the rules are *tested in CI*, not just written.
-- **VPS runtime** — scheduled Porunga work runs on the VPS through six active systemd user
-  timers. The current inventory is in [`docs/architecture.md`](docs/architecture.md).
+- **Operator hub with an approval gate** — Hublot: one thread for the operator and both agents,
+  leased jobs, owner-only Telegram bridge, and no third-party action without a human-approved draft.
+- **Engine routing** — Claude for orchestration only; DeepSeek Flash by default, Codex once on
+  HTTP 402/429, postponed rather than escalated when every gate is closed.
+- **VPS runtime** — scheduled Porunga work runs on the VPS through eight systemd user timers that
+  report to Discord. The current inventory is in [`docs/architecture.md`](docs/architecture.md).
 - **Curated code** — this mirror keeps standalone, runnable pieces and historical references;
   it is not a complete copy of the production runtime.
 
@@ -180,9 +196,9 @@ similarity threshold (anti-hallucination move).
 write-up, architecture diagram, and a runnable `demo.py` on an included sample corpus (no private data needed).
 
 > **Not a production service.** This is an offline, historical prototype preserved for study.
-> The current Porunga runtime is on the VPS and uses structured Markdown indexes and
-> deterministic lexical retrieval for daily knowledge lookup. The demo is never deployed
-> by this public repository.
+> In production, daily knowledge lookup uses structured Markdown indexes and lexical search;
+> agent memory uses PostgreSQL + pgvector with a different local embedding model. The demo is
+> never deployed by this public repository.
 
 ## Guardrails, forged from incidents
 
@@ -210,7 +226,7 @@ bin/            ← guardrail hooks, delivery gates, bridge examples, historical
 memory/         ← sanitized example templates; not the live memory store
 claude-config/  ← path-scoped rule examples and a sanitized import template
 showcase/       ← offline retrieval prototype on an included sample corpus
-docs/            ← current VPS architecture, guardrail scope, competence map
+docs/           ← current VPS architecture + diagram, guardrail scope, competence map
 AGENTS.md       ← standard cross-agent entry point (agents.md specification)
 BEST-PRACTICES.md ← incident-forged operating doctrine
 ```

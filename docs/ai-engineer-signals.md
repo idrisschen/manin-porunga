@@ -2,8 +2,9 @@
 
 > A concise map from this public repository to the engineering practices it demonstrates.
 
-Porunga's production runtime is on one VPS. The Mac does not host Porunga runtime
-components, hooks, timers, or persistent state. This repository is a sanitized public mirror, not the
+Porunga's production runtime is on one VPS: a private hub (Hublot), two peer agents from
+different model families, eight scheduled organs, and separate agent memories. The
+workstation does not host Porunga runtime components, hooks, timers, or persistent state. This repository is a sanitized public mirror, not the
 deployment source. The live system's high-level boundary and timer inventory are in
 [Current Porunga architecture](architecture.md).
 
@@ -12,9 +13,9 @@ deployment source. The live system's high-level boundary and timer inventory are
 | Competency | Evidence in this repository | What it demonstrates |
 |---|---|---|
 | **Context engineering** | HOT / WARM / COLD examples, path-scoped rules, and [AGENTS.md](../AGENTS.md) | Deliberate context selection and clear source-of-truth boundaries. The public files are examples; live memory and runtime wiring stay private. |
-| **VPS operations** | [Current architecture](architecture.md) | One execution host, visible scheduled work, and a distinction between checked runtime state and files that merely exist in Git. |
+| **VPS operations** | [Current architecture](architecture.md) | One execution host, eight observable timers, and a distinction between checked runtime state and files that merely exist in Git. |
 | **Retrieval engineering** | [Offline semantic-search showcase](../showcase/semantic-vault-search/) | A runnable hybrid retrieval prototype with local embeddings, FTS5, Reciprocal Rank Fusion, and a refusal threshold. It is an educational artifact, not a live VPS service. |
-| **Model orchestration** | Agent-role examples and [BEST-PRACTICES.md](../BEST-PRACTICES.md) | Independent review and model diversity as design practices. The public mirror does not disclose private agent endpoints or provider wiring. |
+| **Model orchestration** | [Architecture](architecture.md) and [BEST-PRACTICES.md](../BEST-PRACTICES.md) | A Router dispatching leased jobs to two peer agents (Claude and GPT lineages), a human approval gate on external actions, and engine routing that keeps the expensive model on orchestration while DeepSeek/Codex execute. Endpoints and credentials stay private. |
 | **Delivery engineering** | [jarvis-ship-check.py](../bin/jarvis-ship-check.py) and [jarvis-ship-template.py](../bin/jarvis-ship-template.py) | Evidence-based completion, observable vertical slices, and independent review before calling work ready. |
 | **LLM evaluation** | [tests/doctrine/](../tests/doctrine/) | Behavioural scenarios with weighted assertions, category aggregation, regression detection, and a CI gate. |
 | **Safety and reliability** | [jarvis-bash-guard.sh](../bin/jarvis-bash-guard.sh), [jarvis-memory-guard.sh](../bin/jarvis-memory-guard.sh), and [jarvis-context-watch.sh](../bin/jarvis-context-watch.sh) | Mechanical checks around destructive shell operations, memory growth, and long sessions. See [guardrail scope](garde-fous.md) for limits and deployment status. |
@@ -53,8 +54,9 @@ modes depend on the configured model and may vary.
 
 **Why keep a vector-search demo if production uses another retrieval approach?**
 
-The demo is a reproducible record of an earlier design. The current production
-knowledge lookup uses structured Markdown indexes and deterministic lexical search.
+The demo is a reproducible record of an earlier design. In production, knowledge lookup
+uses structured Markdown indexes and lexical search, while agent memory is recalled from
+PostgreSQL + pgvector with a local multilingual embedding model.
 Keeping the prototype makes the trade-offs concrete without implying it is deployed.
 
 **How is the runtime status verified?**

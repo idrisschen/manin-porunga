@@ -7,7 +7,9 @@ working in this repository, conforming to the [agents.md](https://agents.md) sta
 
 **Manin Porunga** is the curated public mirror of **Porunga**, the personal AI agent
 control room created by Idriss Bhugeloo (Manin Studio). The production runtime is on one
-VPS. No Porunga runtime component or background automation runs on the Mac.
+VPS, which hosts the Hublot hub and two peer agents (Jarvis, Claude lineage; Leo, GPT lineage).
+Claude orchestrates; execution runs on DeepSeek with a Codex fallback. No Porunga runtime
+component or background automation runs on the workstation.
 
 It documents selected engineering patterns from an autonomous agent system built on LLMs:
 - **Durable Markdown memory** with strict **HOT / WARM / COLD** tiers.

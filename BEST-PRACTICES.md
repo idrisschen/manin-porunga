@@ -10,8 +10,9 @@ incidents" and "Philosophy"). This file is the full reference.
 
 ## 0. Runtime boundary
 
-Porunga runs on one VPS. No Porunga runtime component, hook, timer, database, or persistent
-runtime state runs on the Mac. The public repository is a curated mirror, not the deployment source;
+Porunga runs on one VPS, shared by two peer agents with separate identities and memories.
+No Porunga runtime component, hook, timer, database, or persistent runtime state runs on the
+workstation. The public repository is a curated mirror, not the deployment source;
 see [Current Porunga architecture](./docs/architecture.md).
 
 ---
@@ -86,8 +87,12 @@ see [Current Porunga architecture](./docs/architecture.md).
 - **LLM for judgment only** — classification, drafting, summarizing, extracting from unstructured text.
   Not for routing, retries, status codes, or deterministic transforms (`grep`, `jq`, `set -uo pipefail`
   do those faster, cheaper, and with 100% determinism).
-- **Architectural freeze & slimming**: no new organs (scripts, systemd timers, daemons) without an
-  explicit dated mandate. Prefer pruning unused complexity over piling on new features.
+- **Earned organs & slimming**: the construction freeze was lifted on 2026-11-01, but every new organ
+  (script, timer, daemon) must have a reader of its verdict and a measurable result. A silent organ
+  is put to sleep or removed — KILL is a valid outcome. Prefer pruning over piling on.
+- **Expensive model for judgment, cheap model for execution**: the orchestrator frames, splits,
+  reviews diffs and runs the gates; long, well-bounded execution goes to a cheaper engine with a
+  quota-gated fallback, never a silent escalation back to the expensive one.
 
 ## 9. Production guardrails
 - **Never DELETE programmatically on a client's production** (neither via API nor raw SQL). Deletions

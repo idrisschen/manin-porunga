@@ -3,106 +3,170 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Porunga — current VPS architecture</title>
+  <title>Porunga architecture map</title>
   <style>
-    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    :root {
+      --bg: #f3f5f7; --card: #ffffff; --ink: #15202b; --muted: #566573; --line: #d5dde5;
+      --vps: #eef5ff; --vps-line: #2a63a4; --accent: #2a63a4;
+      --jarvis: #c96442; --leo: #10a37f; --canon: #f6f1e7; --canon-line: #a7864a;
+      --ext: #f7f7f8; --warn: #9a6b00;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
     * { box-sizing: border-box; }
-    body { margin: 0; padding: 28px; background: #f4f6f8; color: #17212b; }
-    main { max-width: 1240px; margin: 0 auto; }
-    header { margin: 0 0 20px; }
-    .eyebrow { color: #536271; font: 700 12px ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
-    h1 { margin: 8px 0; font-size: clamp(28px, 4vw, 42px); line-height: 1.1; }
-    header p:last-child { max-width: 760px; color: #536271; font-size: 16px; }
-    .frame { overflow-x: auto; padding: 12px; background: white; border: 1px solid #d8e0e7; border-radius: 18px; box-shadow: 0 8px 28px #17212b12; }
-    svg { display: block; width: 100%; min-width: 800px; height: auto; }
-    .box { fill: #fff; stroke: #243444; stroke-width: 2; }
-    .vps { fill: #edf5ff; stroke: #2763a5; stroke-width: 3; }
-    .public { fill: #fafafa; stroke: #7a8792; stroke-width: 2; stroke-dasharray: 8 6; }
-    .title { fill: #17212b; font-size: 24px; font-weight: 750; }
-    .label { fill: #17212b; font-size: 17px; font-weight: 700; }
-    .copy { fill: #536271; font-size: 14px; }
-    .small { fill: #536271; font-size: 12px; }
-    .tag { fill: #2763a5; font-size: 12px; font-weight: 750; letter-spacing: .08em; }
-    .arrow { fill: none; stroke: #2763a5; stroke-width: 3; }
-    .dash { stroke-dasharray: 7 6; }
-    .footer { margin: 16px 4px 0; color: #536271; font-size: 14px; }
+    body { margin: 0; padding: 32px; background: var(--bg); color: var(--ink); }
+    main { max-width: 1360px; margin: 0 auto; }
+    header { margin-bottom: 22px; }
+    .eyebrow { font: 700 12px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+    h1 { margin: 6px 0 8px; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.1; letter-spacing: -.01em; }
+    header p { margin: 0; max-width: 860px; color: var(--muted); font-size: 15px; line-height: 1.5; }
+
+    .map { display: grid; grid-template-columns: 220px 40px 1fr 40px 250px; align-items: stretch; }
+    .col { display: flex; flex-direction: column; gap: 12px; }
+    .arrow { display: flex; align-items: center; justify-content: center; color: var(--accent); font-size: 22px; font-weight: 700; }
+    .arrow.both::before { content: "⇄"; } .arrow.right::before { content: "→"; }
+
+    .lane-title { font: 700 11px ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 2px 0 2px 2px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; }
+    .card h3 { margin: 0 0 3px; font-size: 14.5px; }
+    .card p { margin: 0; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+    .card.dashed { border-style: dashed; }
+
+    .vps { background: var(--vps); border: 2.5px solid var(--vps-line); border-radius: 18px; padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .vps > .head { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; }
+    .vps > .head h2 { margin: 0; font-size: 22px; }
+    .vps > .head span { font: 700 11px ui-monospace, monospace; letter-spacing: .1em; color: var(--accent); text-transform: uppercase; }
+    .group { background: rgba(255,255,255,.65); border: 1px solid #c9d8ea; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 9px; }
+    .group.full { grid-column: 1 / -1; }
+    .group > .lane-title { color: var(--accent); }
+    .row { display: grid; gap: 9px; }
+    .row.two { grid-template-columns: 1fr 1fr; } .row.three { grid-template-columns: 1fr 1fr 1fr; }
+    .agent-j { border-left: 5px solid var(--jarvis); }
+    .agent-l { border-left: 5px solid var(--leo); }
+    .flow { font-size: 12px; color: var(--accent); font-weight: 600; text-align: center; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { font-size: 11.5px; padding: 4px 8px; border-radius: 999px; background: #fff; border: 1px solid #c9d8ea; color: var(--ink); white-space: nowrap; }
+    .chip b { color: var(--accent); font-weight: 700; }
+    .chip.warn { border-color: #e2c27a; }
+    .chip.warn b { color: var(--warn); }
+
+    .canon { background: var(--canon); border-color: #e3d4b5; }
+    .canon h3 { color: #6e5526; }
+    .ext { background: var(--ext); }
+
+    .public { margin-top: 18px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; background: #fafafa; border: 2px dashed #9aa5af; border-radius: 14px; padding: 14px 18px; }
+    .public h3 { margin: 0 0 3px; font-size: 15px; } .public p { margin: 0; font-size: 13px; color: var(--muted); }
+    .public .tag { font: 700 11px ui-monospace, monospace; letter-spacing: .1em; color: #6b7680; text-transform: uppercase; white-space: nowrap; }
+
+    .legend { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 12.5px; color: var(--muted); }
+    .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
+    footer { margin-top: 12px; font-size: 12px; color: var(--muted); }
+
+    @media (max-width: 980px) {
+      body { padding: 16px; }
+      .map { grid-template-columns: 1fr; gap: 10px; }
+      .arrow { transform: rotate(90deg); height: 26px; }
+      .vps { grid-template-columns: 1fr; }
+      .row.two, .row.three { grid-template-columns: 1fr; }
+      .public { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
 <main>
   <header>
-    <div class="eyebrow">Current architecture · verified 2026-11-01</div>
-    <h1>Porunga runs on one VPS</h1>
-    <p>The VPS is the sole execution host. No Porunga runtime component, hook, timer, or persistent store remains on the Mac. Private deployment details are omitted from this public mirror.</p>
+    <div class="eyebrow">Porunga · verified 2026-11-03</div>
+    <h1>One VPS, two majordomos, Claude orchestrates</h1>
+    <p>The operator talks to a private hub. A Claude Router answers or dispatches leased jobs to two peer agents
+      from different model families. Execution runs on DeepSeek with a Codex fallback; scheduled organs report to
+      Discord. Code and doctrine stay in private sources of truth. Host identity, addresses and paths are omitted.</p>
   </header>
-  <div class="frame">
-    <svg viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
-      <title id="title">Porunga current VPS architecture</title>
-      <desc id="desc">Remote operator access and private code connect to a single VPS running Porunga routines, a PostgreSQL memory database, and an embedding service. The public Manin Porunga repository is documentation and examples only and is not deployed.</desc>
-      <defs>
-        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-          <path d="M0 0 L10 5 L0 10 Z" fill="#2763a5"/>
-        </marker>
-      </defs>
 
-      <rect class="box" x="40" y="110" width="285" height="150" rx="14"/>
-      <text class="tag" x="66" y="144">HUMAN CONTROL</text>
-      <text class="label" x="66" y="180">Operator</text>
-      <text class="copy" x="66" y="207">Remote access client</text>
-      <text class="small" x="66" y="232">Interactive access only</text>
+  <div class="map">
+    <!-- Operator -->
+    <div class="col">
+      <div class="lane-title">Operator access</div>
+      <div class="card"><h3>Hublot PWA</h3><p>Phone and desktop, over a private network. Thread, tasks, approvals.</p></div>
+      <div class="card"><h3>Telegram DM</h3><p>Owner-only, bridged into the same Hublot conversation.</p></div>
+      <div class="card"><h3>Claude remote sessions</h3><p>Mobile/web client attached to Jarvis on the VPS.</p></div>
+      <div class="card"><h3>Discord</h3><p>Read-only inbox: brief, production health, watchdog.</p></div>
+      <div class="card dashed"><h3>Workstation</h3><p>Interactive only: vault editing, computer use, IDE. No background organ.</p></div>
+    </div>
 
-      <rect class="vps" x="375" y="70" width="455" height="500" rx="20"/>
-      <text class="tag" x="408" y="110">SOLE EXECUTION HOST</text>
-      <text class="title" x="408" y="146">VPS</text>
+    <div class="arrow both" aria-hidden="true"></div>
 
-      <rect class="box" x="408" y="174" width="389" height="118" rx="12"/>
-      <text class="label" x="432" y="208">Porunga services</text>
-      <text class="copy" x="432" y="235">Brief · Watchtower · Watchdog · memory sync</text>
-      <text class="copy" x="432" y="259">Index build · database backup</text>
-      <text class="small" x="432" y="280">Six active systemd user timers</text>
+    <!-- VPS -->
+    <section class="vps" aria-label="VPS runtime">
+      <div class="head"><h2>VPS</h2><span>sole Porunga runtime</span></div>
 
-      <rect class="box" x="408" y="314" width="184" height="112" rx="12"/>
-      <text class="label" x="430" y="350">PostgreSQL</text>
-      <text class="copy" x="430" y="378">Persistent memory</text>
-      <text class="small" x="430" y="403">Private runtime data</text>
+      <div class="group full">
+        <div class="lane-title">Hublot hub</div>
+        <div class="row three">
+          <div class="card"><h3>Thread &amp; job queue</h3><p>Messages, missions, widgets; workers claim jobs under a lease.</p></div>
+          <div class="card"><h3>Router</h3><p>Claude, mid-size model. Replies, batches bursts, dispatches work.</p></div>
+          <div class="card"><h3>Approval gate</h3><p>Every external action needs a human-approved <code>claim_approval</code>.</p></div>
+        </div>
+        <div class="chips"><span class="chip"><b>relay</b> GitHub</span><span class="chip"><b>relay</b> Mail · Calendar</span><span class="chip"><b>relay</b> Todoist</span><span class="chip"><b>relay</b> Telegram</span><span class="chip"><b>watchdog</b> every 15 min</span></div>
+      </div>
 
-      <rect class="box" x="613" y="314" width="184" height="112" rx="12"/>
-      <text class="label" x="635" y="350">Embeddings</text>
-      <text class="copy" x="635" y="378">Local service</text>
-      <text class="small" x="635" y="403">Available on the VPS</text>
+      <div class="group">
+        <div class="lane-title">Peer majordomos · separate identities</div>
+        <div class="card agent-j"><h3>Jarvis</h3><p>Claude lineage. Frames, splits, delegates, reviews diffs, runs the gates.</p></div>
+        <div class="card agent-l"><h3>Leo</h3><p>GPT lineage on the Hermes agent. Own sub-agents, own messaging gateway.</p></div>
+        <div class="flow">cross-family second opinion on irreversible calls</div>
+      </div>
 
-      <rect class="box" x="408" y="448" width="389" height="88" rx="12"/>
-      <text class="label" x="432" y="484">Private runtime configuration</text>
-      <text class="copy" x="432" y="512">Credentials and knowledge sources stay private</text>
+      <div class="group">
+        <div class="lane-title">Execution engines</div>
+        <div class="card"><h3>DeepSeek Flash</h3><p>Default for routines, delegated tasks and code sessions. Prepaid-balance gate.</p></div>
+        <div class="flow">↓ once, on HTTP 402 / 429</div>
+        <div class="card"><h3>Codex</h3><p>Fallback. Never an automatic switch back to Claude.</p></div>
+      </div>
 
-      <rect class="box" x="875" y="110" width="285" height="150" rx="14"/>
-      <text class="tag" x="901" y="144">PRIVATE SOURCE</text>
-      <text class="label" x="901" y="180">Canonical code</text>
-      <text class="copy" x="901" y="207">Private repository</text>
-      <text class="small" x="901" y="232">Deployment source</text>
+      <div class="group">
+        <div class="lane-title">8 systemd user timers</div>
+        <div class="chips">
+          <span class="chip"><b>03:00</b> Watchtower</span><span class="chip"><b>03:15</b> memory backup</span>
+          <span class="chip"><b>03:30</b> morning brief</span><span class="chip"><b>03:30</b> vault index</span>
+          <span class="chip"><b>04:45</b> runtime watchdog</span><span class="chip"><b>/15 min</b> Hublot watchdog</span>
+          <span class="chip"><b>19:30</b> memory sync</span><span class="chip warn"><b>23:00</b> content render ⚠</span>
+        </div>
+        <p style="margin:0;font-size:11.5px;color:var(--muted)">UTC. Deterministic organs use no model. ⚠ still calls Claude headless — known exception.</p>
+      </div>
 
-      <rect class="box" x="875" y="325" width="285" height="110" rx="14"/>
-      <text class="tag" x="901" y="358">INTEGRATIONS</text>
-      <text class="label" x="901" y="394">External services</text>
-      <text class="copy" x="901" y="418">Configured from private credentials</text>
+      <div class="group">
+        <div class="lane-title">Memory · never shared</div>
+        <div class="card agent-j"><h3>Jarvis memory</h3><p>PostgreSQL 17 + pgvector, local multilingual embeddings, recalled on every prompt.</p></div>
+        <div class="card agent-l"><h3>Leo memory</h3><p>Separate memory service and bank.</p></div>
+        <div class="chips"><span class="chip"><b>browser</b> isolated profile per agent</span><span class="chip"><b>display</b> virtual, observable</span></div>
+      </div>
+    </section>
 
-      <rect class="public" x="40" y="420" width="285" height="150" rx="14"/>
-      <text class="tag" x="66" y="454">PUBLIC MIRROR</text>
-      <text class="label" x="66" y="490">Manin Porunga</text>
-      <text class="copy" x="66" y="517">Docs · examples · evaluations</text>
-      <text class="small" x="66" y="542">Not deployed to the VPS</text>
+    <div class="arrow both" aria-hidden="true"></div>
 
-      <path class="arrow" d="M325 184 C350 184 350 232 400 232" marker-end="url(#arrow)"/>
-      <text class="small" x="342" y="172">remote session</text>
-
-      <path class="arrow" d="M875 184 C852 184 852 225 805 225" marker-end="url(#arrow)"/>
-      <text class="small" x="824" y="170">deploy</text>
-
-      <path class="arrow" d="M797 232 C840 240 842 360 875 380" marker-end="url(#arrow)"/>
-      <text class="small" x="829" y="304">API calls</text>
-    </svg>
+    <!-- Canon & external -->
+    <div class="col">
+      <div class="lane-title">Private sources of truth</div>
+      <div class="card canon"><h3>Private Porunga Git</h3><p>Code, config, decisions. Pulled on each routine run. Arbitrates any divergence.</p></div>
+      <div class="card canon"><h3>Knowledge vault</h3><p>Doctrine &amp; projects. Synced with the workstation, writable by both agents, mirrored into Git nightly.</p></div>
+      <div class="lane-title" style="margin-top:6px">External</div>
+      <div class="card ext"><h3>GitHub</h3><p>Fresh worktree per code session; client repos stop at an open PR.</p></div>
+      <div class="card ext"><h3>Client productions</h3><p>Read-only health checks. Never a programmatic DELETE.</p></div>
+      <div class="card ext"><h3>Notion</h3><p>Archive of machine outputs. Never an authority.</p></div>
+    </div>
   </div>
-  <p class="footer">The word “VPS” is the public-facing name for the runtime. Provider, host identity, network addresses, private paths, and credentials are intentionally omitted.</p>
+
+  <div class="public">
+    <div><h3>manin-porunga — this public repository</h3><p>Sanitized docs, guardrail scripts, eval harness and an offline retrieval demo. Readers clone it; the VPS never pulls it.</p></div>
+    <div class="tag">not deployed</div>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--jarvis)"></i>Claude lineage (Jarvis)</span>
+    <span><i style="background:var(--leo)"></i>GPT lineage (Leo)</span>
+    <span><i style="background:var(--vps);border:1px solid var(--vps-line)"></i>Runs on the VPS</span>
+    <span><i style="background:var(--canon);border:1px solid var(--canon-line)"></i>Private canon</span>
+  </div>
+  <footer>“VPS” is the public-facing name for the runtime host. Provider, host identity, network addresses, ports, private paths and credentials are intentionally omitted.</footer>
 </main>
 </body>
 </html>
