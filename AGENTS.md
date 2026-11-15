@@ -13,11 +13,12 @@ component or background automation runs on the workstation.
 
 It documents selected engineering patterns from an autonomous agent system built on LLMs:
 - **Durable Markdown memory** with strict **HOT / WARM / COLD** tiers.
+- **Long-term memory** in PostgreSQL + pgvector: session ingestion, dated facts, hybrid recall (vector + full-text, RRF), and a shared MCP contract.
 - **Multi-agent role & model diversity** (independent agent roles and model families; private runtime wiring is not published here).
 - **Offline LLM-evaluation harness** (`tests/doctrine/`) with 14 graded behavioural scenarios gating CI.
 - **Notable Delivery Contract** (`bin/jarvis-ship-check.py`): mechanical gating requiring structured hypotheses, observable vertical slices, and independent fresh-context review.
 - **Mechanical guardrails**: `PreToolUse` bash hook blocking batch mutating git commands and rm -rf, memory file caps, and dumb-zone context watchers.
-- **Hybrid RAG & the Post-RAG pivot**: local vector retrieval (`sqlite-vec` + e5 + FTS5 + RRF) showcase, and the architectural lesson of why production evolved to deterministic structured indexes (`_vault-index.md` + ripgrep).
+- **Hybrid RAG & the Post-RAG pivot**: local vector retrieval (`sqlite-vec` + e5 + FTS5 + RRF) showcase, the lesson of why knowledge lookup evolved to deterministic structured indexes (`_vault-index.md` + ripgrep), and the separate dated-memory pipeline (PostgreSQL + pgvector, hybrid recall).
 
 ## Source of truth & hierarchy
 
@@ -25,7 +26,8 @@ It documents selected engineering patterns from an autonomous agent system built
 |---|---|---|
 | **Git repo (here)** | Curated public mirror, sanitized doctrine, eval harness, tools | Source for this public example only; never the production deployment source |
 | **Private canon** | Private Git repo + private knowledge base | Absolute source of truth for production code, configuration, and private doctrine |
-| **Notion** | Archive of machine outputs (briefs, watchtower, session recaps) | Never a source of truth |
+| **Long-term memory** | PostgreSQL + pgvector on the host | Durable dated facts and decisions; never exported here |
+| **Local artefacts / private channels** | Reports, receipts, operator notifications | Never a source of truth |
 
 ## Hard rules — read before touching anything
 

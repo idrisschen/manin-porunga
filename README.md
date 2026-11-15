@@ -16,8 +16,7 @@
   <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/github.svg" width="30" title="git — the canon" alt="GitHub" />&nbsp;&nbsp;
   <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/python.svg" width="30" title="Python — engine & evals" alt="Python" />&nbsp;&nbsp;
   <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/postgres.svg" width="30" title="PostgreSQL + pgvector — agent memory" alt="PostgreSQL" />&nbsp;&nbsp;
-  <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/discord.svg" width="30" title="Discord — organ notifications" alt="Discord" />&nbsp;&nbsp;
-  <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/notion.svg" width="30" title="Notion — archive of machine outputs" alt="Notion" />
+  <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/discord.svg" width="30" title="Discord — organ notifications" alt="Discord" />
 </p>
 
 <p align="center">
@@ -51,18 +50,19 @@ does the work, and which source wins when copies disagree**. Porunga runs on one
   and Leo (GPT lineage, Hermes agent) — with separate memories, so either can challenge the other.
 - **Claude orchestrates, it does not execute.** Routines, delegated tasks and code sessions run on
   DeepSeek Flash, fall back to Codex on quota exhaustion, and never silently switch back to Claude.
-- **Eight systemd timers** run the organs (production health, brief, watchdogs, backups, sync)
-  and report to Discord. The workstation is an interactive client only.
+- **Nine systemd timers** run the organs (production health, memory maintenance, brief,
+  watchdogs, backups, sync) and report to Discord. The workstation is an interactive client only.
 
 The private Porunga repository and private knowledge base remain the sources of truth. This
 repository is a sanitized public mirror with examples, guardrail scripts, and evaluation
 fixtures. It is not pulled by the VPS and must not be treated as the production deployment
-source. Notion is an archive for selected machine outputs, not an authority for code or doctrine.
+source. Machine-generated reports and receipts stay in local artefacts and private channels;
+they are never an authority for code or doctrine.
 
-See the [current architecture, engine routing and timer inventory](docs/architecture.md) (verified 2026-11-03).
+See the [current architecture, engine routing and timer inventory](docs/architecture.md) (verified 2026-11-15).
 
 <p align="center">
-  <a href="docs/assets/setup-map.html"><img src="docs/assets/setup-map.png" alt="Porunga architecture: operator clients reach the Hublot hub on the sole VPS; a Claude Router dispatches jobs to Jarvis and Leo; execution runs on DeepSeek with Codex fallback; eight timers report to Discord; private Git and vault remain the sources of truth; this public repository is not deployed." width="100%" /></a>
+  <a href="docs/assets/setup-map.html"><img src="docs/assets/setup-map.png" alt="Porunga architecture: operator clients reach the Hublot hub on the sole VPS; a Claude Router dispatches jobs to Jarvis and Leo; execution runs on DeepSeek with Codex fallback; nine timers report to Discord; private Git and vault remain the sources of truth; this public repository is not deployed." width="100%" /></a>
 </p>
 
 ## What this demonstrates (engineering)
@@ -78,7 +78,8 @@ See the [current architecture, engine routing and timer inventory](docs/architec
 | Engine routing: Claude orchestrates, DeepSeek executes, Codex on quota | **LLM cost engineering** — the expensive model only frames, reviews and replies; execution is routed through quota gates with a single, logged fallback and no silent escalation. |
 | **Notable Delivery Contract** ([`bin/jarvis-ship-check.py`](./bin/jarvis-ship-check.py)) | **Delivery engineering & QA** — moving beyond "it compiles": pre-code hypothesis audits, vertical observable slices with verifiable E2E proof, and independent review in fresh context before calling a feature "ready". |
 | Doctrine evaluation harness ([`tests/doctrine/`](./tests/doctrine)) | **LLM evaluation** — assistant behaviour tested against 14 scenarios across 6 categories, not assumed correct: weighted scoring, category aggregation, **regression detection vs previous run**, non-zero exit gating CI. |
-| VPS-only background runtime, eight observable timers, deterministic token observability ([`bin/jarvis-token-report`](./bin/jarvis-token-report), reference script) | **LLMOps** — every organ has a reader of its verdict (success, failure, absence, delay); deterministic organs use no model at all. The token report here is an example, not a live service. |
+| VPS-only background runtime, nine observable timers, deterministic token observability ([`bin/jarvis-token-report`](./bin/jarvis-token-report), reference script) | **LLMOps** — every organ has a reader of its verdict (success, failure, absence, delay); deterministic organs use no model at all. The token report here is an example, not a live service. |
+| **Durable memory pipeline** ([long-term memory](#long-term-memory)) | **Memory operations** — session ingestion, cheap-model extraction, provenance, supersession, nightly sweep, 14-day backups, and one MCP contract shared by every harness. |
 | PreToolUse hooks, sequential state ops, memory boundaries ([`bin/jarvis-bash-guard.sh`](./bin/jarvis-bash-guard.sh), [`bin/jarvis-memory-guard.sh`](./bin/jarvis-memory-guard.sh)) | **AI safety & reliability** — mechanical guardrails around an autonomous agent: intercepts batched mutating git commands and `rm -rf`, enforces headless write-roots boundaries, and warns before "dumb zone" marathon sessions. |
 | Incident-forged, **dated** operating rules | **Production discipline** — real failures turned into enforced checks, not blog best-practices. |
 
@@ -94,6 +95,7 @@ See the [current architecture, engine routing and timer inventory](docs/architec
 | Operator access | Hublot PWA, private Telegram DM, Claude remote sessions, Discord | Talks to the Router, approves external actions, reads organ verdicts. |
 | Workstation | Interactive client | Vault editing, computer use, IDE; hosts no Porunga timer, background organ, or persistent store. |
 | Private canon | Private Git repository and knowledge base | Holds production code, configuration, doctrine, and private data. |
+| Long-term memory | PostgreSQL + pgvector on the host | Dated facts, decisions, preferences, and episodes recalled by the agent; never exported to this repository. |
 | This repository | Public GitHub mirror | Holds sanitized documentation, examples, and evaluation material; it is not deployed. |
 
 The word **VPS** is the public-facing name for the runtime. The provider, host identity,
@@ -127,8 +129,17 @@ network details, and private paths are omitted from this repository.
   leased jobs, owner-only Telegram bridge, and no third-party action without a human-approved draft.
 - **Engine routing** — Claude for orchestration only; DeepSeek Flash by default, Codex once on
   HTTP 402/429, postponed rather than escalated when every gate is closed.
-- **VPS runtime** — scheduled Porunga work runs on the VPS through eight systemd user timers that
-  report to Discord. The current inventory is in [`docs/architecture.md`](docs/architecture.md).
+- **VPS runtime** — scheduled Porunga work runs on the VPS through **nine systemd user timers**
+  that report to Discord: tests, production health, memory maintenance, backup, brief, index
+  build, watchdog, RAM guard, and memory sync. The current inventory is in
+  [`docs/architecture.md`](docs/architecture.md).
+- **Long-term memory** — finished sessions from the agent harnesses are distilled into atomic,
+  dated memories stored in PostgreSQL + pgvector, recalled by hybrid vector/full-text search
+  (Reciprocal Rank Fusion), and exposed through a local MCP server. Corrections supersede;
+  forgetting is a soft expiry. See [long-term memory](#long-term-memory).
+- **Nightly deterministic suite** — 600+ unit tests, a documentation-drift gate, and a real
+  PostgreSQL integration schema run before the morning routines; failures reach a private
+  operator channel.
 - **Curated code** — this mirror keeps standalone, runnable pieces and historical references;
   it is not a complete copy of the production runtime.
 
@@ -140,6 +151,22 @@ network details, and private paths are omitted from this repository.
 | **WARM** | on context match (cwd / path-scoped rules) | one file per project, domain, or infra runbook |
 | **COLD** | only on explicit request | historical archives, past incident post-mortems, raw session logs |
 | **path-scoped** | mechanically, when opening matching code | project-specific client/infra rules (`claude-config/rules/`) |
+
+## Long-term memory
+
+Markdown tiers are good at *doctrine*; they are poor at *facts that accumulate*. Porunga
+therefore keeps a second, dated store beside the knowledge base:
+
+| Stage | What happens |
+|---|---|
+| **Ingestion** | Finished sessions from the agent harnesses are read in place. Transcript deltas go to a cheap extraction model that emits atomic memories (`fact`, `episode`, `preference`, `decision`, `observation`, `procedure`), each dated and tied to a project. |
+| **Storage** | PostgreSQL + `pgvector`, one short connection per operation. A correction supersedes the old memory; forgetting sets an expiry and never deletes the row. |
+| **Recall** | Hybrid search: multilingual vector similarity fused with French full-text ranking via **Reciprocal Rank Fusion**. The agent receives ranked candidates and a reminder that rank is not confidence. |
+| **Interface** | A local **MCP server** exposes recall, remember, forget, supersede, conflicts, and stats, so every harness shares the same memory contract. |
+| **Operations** | A nightly bounded sweep catches sessions that never fired an end hook; a nightly `pg_dump` keeps 14 days; the watchdog reports ingestion coverage per harness. |
+
+The split is deliberate: the vault answers *"what is the rule?"* verbatim, the memory
+database answers *"what did we decide, and when?"* with provenance. Neither is a chat log.
 
 ## Evaluation
 

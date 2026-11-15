@@ -7,7 +7,7 @@ paths:
 canonical_sources:
   - "Private Homelab index and current project notes"
   - "Private Porunga deployment inventory"
-last_reviewed: 2026-11-01
+last_reviewed: 2026-11-15
 ---
 
 # Rule — VPS runtime and internal infrastructure
